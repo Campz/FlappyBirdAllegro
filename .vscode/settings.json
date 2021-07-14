@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "allegro_primitives.h": "c",
+        "allegro_image.h": "c",
+        "allegro_acodec.h": "c"
+    }
+}
