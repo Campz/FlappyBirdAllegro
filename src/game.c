@@ -133,6 +133,10 @@ typedef struct SPRITES
 
     ALLEGRO_BITMAP *background;
 
+    ALLEGRO_BITMAP *pipe_sheet;
+
+    ALLEGRO_BITMAP *pipe[2];
+
 } SPRITES;
 
 SPRITES sprites;
@@ -149,6 +153,12 @@ void sprites_init()
     sprites.background = al_load_bitmap("./assets/background.png");
     must_init(sprites.background, "background");
 
+    sprites.pipe_sheet = al_load_bitmap("./assets/pipe.png");
+    must_init(sprites.pipe_sheet, "pipe");
+
+    sprites.pipe[0] = sprite_grab(sprites.pipe_sheet, 0, 0, PIPE_W, PIPE_H);
+    sprites.pipe[1] = sprite_grab(sprites.pipe_sheet, PIPE_W + 2, 0, PIPE_W, PIPE_H);
+
     sprites.player_sheet = al_load_bitmap("./assets/player.png");
     must_init(sprites.player_sheet, "playersheet");
 
@@ -163,6 +173,10 @@ void sprites_denit()
     //al_destroy_bitmap(sprites.player[1]);
     //al_destroy_bitmap(sprites.player[2]);
 
+    al_destroy_bitmap(sprites.pipe_sheet);
+    al_destroy_bitmap(sprites.pipe[0]);
+    al_destroy_bitmap(sprites.pipe[1]);
+
     al_destroy_bitmap(sprites.player_sheet);
     al_destroy_bitmap(sprites.background);
 }
@@ -170,6 +184,44 @@ void sprites_denit()
 // --- audio ---
 
 // --- obtacles ---
+
+#define NPIPES_MAX 999
+
+typedef struct PIPE
+{
+    float x, y;
+} PIPE;
+
+PIPE pipes[NPIPES_MAX];
+
+void pipe_init()
+{
+    srand(time(NULL));
+    pipes[0].x = BUFFER_W;
+    pipes[0].y = (rand() % 100) - 100;
+    for (int i = 1; i < NPIPES_MAX; i++)
+    {
+        pipes[i].x = pipes[i - 1].x + 80;
+        pipes[i].y = (rand() % 100) - 100;
+    }
+}
+
+void pipe_update()
+{
+    for (int i = 0; i < NPIPES_MAX; i++)
+    {
+        pipes[i].x = pipes[i].x - 0.7;
+    }
+}
+
+void pipe_draw()
+{
+    for (int i = 0; i < NPIPES_MAX; i++)
+    {
+        al_draw_bitmap(sprites.pipe[0], pipes[i].x, pipes[i].y, 0);
+        al_draw_bitmap(sprites.pipe[1], pipes[i].x, pipes[i].y + 205, 0);
+    }
+}
 
 // --- hud ---
 
@@ -242,6 +294,7 @@ int main()
 
     keyboard_init();
     player_init();
+    pipe_init();
 
     bool done = false;
     bool redraw = true;
@@ -255,6 +308,7 @@ int main()
         switch (event.type)
         {
         case ALLEGRO_EVENT_TIMER:
+            pipe_update();
             player.gravity = player.gravity + 0.3;
             if (player.y < 461 && !key[ALLEGRO_KEY_SPACE])
             {
@@ -295,6 +349,7 @@ int main()
 
             al_draw_bitmap(sprites.background, 0, 0, 0);
             player_draw();
+            pipe_draw();
 
             disp_post_draw();
             redraw = false;
