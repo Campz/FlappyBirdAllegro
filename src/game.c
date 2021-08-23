@@ -10,7 +10,8 @@
 // --- general ---
 
 long frames;
-long score;
+long score = 0;
+char score_string[3];
 
 void must_init(bool test, const char *description)
 {
@@ -190,6 +191,7 @@ void sprites_denit()
 typedef struct PIPE
 {
     float x, y;
+    int isScored;
 } PIPE;
 
 PIPE pipes[NPIPES_MAX];
@@ -199,10 +201,12 @@ void pipe_init()
     srand(time(NULL));
     pipes[0].x = BUFFER_W;
     pipes[0].y = (rand() % 100) - 100;
+    pipes[0].isScored = 0;
     for (int i = 1; i < NPIPES_MAX; i++)
     {
         pipes[i].x = pipes[i - 1].x + 80;
         pipes[i].y = (rand() % 100) - 100;
+        pipes[0].isScored = 0;
     }
 }
 
@@ -211,6 +215,11 @@ void pipe_update()
     for (int i = 0; i < NPIPES_MAX; i++)
     {
         pipes[i].x = pipes[i].x - 0.7;
+        if (pipes[i].x < 0 && pipes[i].isScored == 0)
+        {
+            score++;
+            pipes[i].isScored = 1;
+        }
     }
 }
 
@@ -350,6 +359,9 @@ int main()
             al_draw_bitmap(sprites.background, 0, 0, 0);
             player_draw();
             pipe_draw();
+
+            sprintf(score_string, "%i", score);
+            al_draw_text(font, al_map_rgb(255, 255, 255), (BUFFER_W / 2) - 2, 10, 0, score_string);
 
             disp_post_draw();
             redraw = false;
