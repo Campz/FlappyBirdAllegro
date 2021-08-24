@@ -184,61 +184,20 @@ void sprites_denit()
 
 // --- audio ---
 
-// --- obtacles ---
-
-#define NPIPES_MAX 999
-
-typedef struct PIPE
-{
-    float x, y;
-    int isScored;
-} PIPE;
-
-PIPE pipes[NPIPES_MAX];
-
-void pipe_init()
-{
-    srand(time(NULL));
-    pipes[0].x = BUFFER_W;
-    pipes[0].y = (rand() % 100) - 100;
-    pipes[0].isScored = 0;
-    for (int i = 1; i < NPIPES_MAX; i++)
-    {
-        pipes[i].x = pipes[i - 1].x + 80;
-        pipes[i].y = (rand() % 100) - 100;
-        pipes[0].isScored = 0;
-    }
-}
-
-void pipe_update()
-{
-    for (int i = 0; i < NPIPES_MAX; i++)
-    {
-        pipes[i].x = pipes[i].x - 0.7;
-        if (pipes[i].x < 0 && pipes[i].isScored == 0)
-        {
-            score++;
-            pipes[i].isScored = 1;
-        }
-    }
-}
-
-void pipe_draw()
-{
-    for (int i = 0; i < NPIPES_MAX; i++)
-    {
-        al_draw_bitmap(sprites.pipe[0], pipes[i].x, pipes[i].y, 0);
-        al_draw_bitmap(sprites.pipe[1], pipes[i].x, pipes[i].y + 205, 0);
-    }
-}
-
 // --- hud ---
+
+void score_draw(ALLEGRO_FONT *font)
+{
+    sprintf(score_string, "%i", score);
+    al_draw_text(font, al_map_rgb(255, 255, 255), (BUFFER_W / 2) - 2, 10, 0, score_string);
+}
 
 // --- player ---
 
 typedef struct PLAYER
 {
     float x, y, gravity;
+    int isAlive;
 
 } PLAYER;
 
@@ -249,6 +208,7 @@ void player_init()
     player.x = 10;
     player.y = 100;
     player.gravity = 0;
+    player.isAlive = 1;
 }
 
 void player_update()
@@ -270,6 +230,98 @@ void player_draw()
     al_draw_bitmap(sprites.player, player.x, player.y, 0);
 }
 
+// --- obtacles ---
+
+#define NPIPES_MAX 999
+#define PIPE_SPACE_BETWEEN 45
+
+typedef struct PIPE
+{
+    float x, y;
+    int isScored;
+} PIPE;
+
+PIPE pipes[NPIPES_MAX];
+
+int isPlayerColliding(float player_x, float player_y, float pipe_x, float pipe_y)
+{
+    // Se o jogador estiver posicionado na região entre os canos
+    if (player_x + PLAYER_W >= pipe_x && player_x <= pipe_x + PIPE_W)
+    {
+        // E o jogador encontar no cano de cima
+        if (player_y >= pipe_y && player_y <= pipe_y + PIPE_H)
+        {
+            return 1;
+        }
+
+        // Ou o jogador encostar no cano de baixo
+        if (player_y + PLAYER_H >= pipe_y + PIPE_H + PIPE_SPACE_BETWEEN && player_y + PLAYER_H <= pipe_y + PIPE_H + PIPE_H + PIPE_SPACE_BETWEEN)
+        {
+            return 1;
+        }
+    }
+
+    // Se o jogador ultrapassar dos limites da tela
+    if (player_y <= 0 || player_y >= BUFFER_H)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+void pipe_init()
+{
+    srand(time(NULL));
+    // O primeiro cano do jogo é inicializado no final do campo de visão do display
+    pipes[0].x = BUFFER_W;
+    // Uma coordenada y aleatória é gerado para o cano
+    pipes[0].y = (rand() % 100) - 100;
+
+    pipes[0].isScored = 0;
+    for (int i = 1; i < NPIPES_MAX; i++)
+    {
+        // A coordenada x dos demais canos possuem um espaçamento de 80 em relação ao cano anterior a ele
+        pipes[i].x = pipes[i - 1].x + 80;
+        // Uma coordenada y aleatória é gerado para o cano
+        pipes[i].y = (rand() % 100) - 100;
+
+        pipes[0].isScored = 0;
+    }
+}
+
+void pipe_update()
+{
+    for (int i = 0; i < NPIPES_MAX; i++)
+    {
+        // Move todos os canos para a esquerda
+        pipes[i].x = pipes[i].x - 0.7;
+
+        // Verfica se o jogador está colidindo com um dos canos e mata ele se positivo
+        if (isPlayerColliding(player.x, player.y, pipes[i].x, pipes[i].y))
+        {
+            player.isAlive = 0;
+        }
+
+        // Conta um score para o jogador quando um cano passa por ele
+        if (pipes[i].x + PIPE_W < player.x && !pipes[i].isScored && player.isAlive)
+        {
+            score++;
+            pipes[i].isScored = 1;
+        }
+    }
+}
+
+void pipe_draw()
+{
+    for (int i = 0; i < NPIPES_MAX; i++)
+    {
+        al_draw_bitmap(sprites.pipe[0], pipes[i].x, pipes[i].y, 0);
+
+        // O cano de baixo é desenhado pegando a coordenada y do de cima somado com a altura do cano + um espaçamento definido
+        al_draw_bitmap(sprites.pipe[1], pipes[i].x, pipes[i].y + PIPE_H + PIPE_SPACE_BETWEEN, 0);
+    }
+}
 //--- main ---
 
 int main()
@@ -318,14 +370,18 @@ int main()
         {
         case ALLEGRO_EVENT_TIMER:
             pipe_update();
-            player.gravity = player.gravity + 0.3;
-            if (player.y < 461 && !key[ALLEGRO_KEY_SPACE])
+            if (player.isAlive)
             {
-                player.y = player.y + player.gravity;
+
+                player.gravity = player.gravity + 0.3;
+                if (player.y < 461 && !key[ALLEGRO_KEY_SPACE])
+                {
+                    player.y = player.y + player.gravity;
+                }
+                if (key[ALLEGRO_KEY_SPACE])
+                    player.gravity = 0;
+                player.y = player.y - 2.5;
             }
-            if (key[ALLEGRO_KEY_SPACE])
-                player.gravity = 0;
-            player.y = player.y - 3;
 
             if (key[ALLEGRO_KEY_ESCAPE])
                 done = true;
@@ -357,12 +413,12 @@ int main()
             al_clear_to_color(al_map_rgb(0, 0, 0));
 
             al_draw_bitmap(sprites.background, 0, 0, 0);
-            player_draw();
+            if (player.isAlive)
+            {
+                player_draw();
+            }
             pipe_draw();
-
-            sprintf(score_string, "%i", score);
-            al_draw_text(font, al_map_rgb(255, 255, 255), (BUFFER_W / 2) - 2, 10, 0, score_string);
-
+            score_draw(font);
             disp_post_draw();
             redraw = false;
         }
