@@ -10,8 +10,15 @@
 // --- general ---
 
 long frames;
-long score = 0;
+
+int score = 0;
 char score_string[3];
+
+FILE *best_score_file = NULL;
+int best_score = 0;
+char best_score_string[5];
+int best_score_was_updated = 0;
+
 int isOnMenu = 1;
 int isOnHowToPlay = 0;
 
@@ -24,28 +31,37 @@ void must_init(bool test, const char *description)
     exit(1);
 }
 
-int between(int lo, int hi)
+void get_best_score()
 {
-    return lo + (rand() % (hi - lo));
+    best_score_file = fopen("bestScore.txt", "r");
+    if (best_score_file != NULL)
+    {
+        fgets(best_score_string, 4, best_score_file);
+        best_score = atoi(best_score_string);
+    }
+    else
+    {
+        best_score_file = fopen("bestScore.txt", "w");
+        fputc('0', best_score_file);
+    }
+    fclose(best_score_file);
 }
 
-float between_f(float lo, float hi)
+int is_best_score()
 {
-    return lo + ((float)rand() / (float)RAND_MAX) * (hi - lo);
+    if (score > best_score)
+    {
+        return 1;
+    }
+    return 0;
 }
 
-bool collide(int ax1, int ay1, int ax2, int ay2, int bx1, int by1, int bx2, int by2)
+void update_best_score()
 {
-    if (ax1 > bx2)
-        return false;
-    if (ax2 < bx1)
-        return false;
-    if (ay1 > by2)
-        return false;
-    if (ay2 < by1)
-        return false;
-
-    return true;
+    best_score_file = fopen("bestScore.txt", "w");
+    fputs(score_string, best_score_file);
+    fclose(best_score_file);
+    best_score_was_updated = 1;
 }
 
 // --- display ---
@@ -142,6 +158,7 @@ typedef struct SPRITES
     ALLEGRO_BITMAP *scoreboard;
     ALLEGRO_BITMAP *medal_sheet;
     ALLEGRO_BITMAP *medal[4];
+    ALLEGRO_BITMAP *new_best;
 
     ALLEGRO_BITMAP *get_ready;
     ALLEGRO_BITMAP *how_to_play;
@@ -176,6 +193,9 @@ void sprites_init()
     // Inicializa sprite do scoreboard
     sprites.scoreboard = al_load_bitmap("./assets/scoreboard.png");
     must_init(sprites.scoreboard, "scoreboard");
+
+    sprites.new_best = al_load_bitmap("./assets/new.png");
+    must_init(sprites.new_best, "new best score");
 
     // Inicializa sprite das medalhas
     sprites.medal_sheet = al_load_bitmap("./assets/medal.png");
@@ -222,6 +242,7 @@ void sprites_denit()
     al_destroy_bitmap(sprites.player_sheet);
     al_destroy_bitmap(sprites.background);
     al_destroy_bitmap(sprites.scoreboard);
+    al_destroy_bitmap(sprites.new_best);
 
     al_destroy_bitmap(sprites.medal_sheet);
     al_destroy_bitmap(sprites.medal[0]);
@@ -255,10 +276,16 @@ void score_draw(ALLEGRO_FONT *font, int isAlive)
     }
 }
 
-void scoreboard_draw()
+void scoreboard_draw(ALLEGRO_FONT *font)
 {
     al_draw_bitmap(sprites.game_over, BUFFER_W / 9 + 8, BUFFER_W / 3 - 5, 0);
     al_draw_bitmap(sprites.scoreboard, BUFFER_W / 9, BUFFER_H / 3, 0);
+    sprintf(best_score_string, "%i", best_score);
+    al_draw_text(font, al_map_rgb(251, 120, 88), BUFFER_W - 40, BUFFER_H - 133, 0, best_score_string);
+    if (best_score_was_updated)
+    {
+        al_draw_bitmap(sprites.new_best, 82, BUFFER_H - 142, 0);
+    }
     if (score < 25)
     {
         al_draw_bitmap(sprites.medal[0], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
@@ -471,6 +498,7 @@ int main()
         switch (event.type)
         {
         case ALLEGRO_EVENT_TIMER:
+            // Lógica do menu principal
             if (isOnMenu)
             {
                 if (key[ALLEGRO_KEY_A])
@@ -481,6 +509,7 @@ int main()
             }
             else
             {
+                // Lógica da tela de tutorial
                 if (isOnHowToPlay)
                 {
                     if (key[ALLEGRO_KEY_SPACE])
@@ -490,6 +519,7 @@ int main()
                 }
                 else
                 {
+                    // Lógica principal do jogo
                     pipe_update();
                     if (player.isAlive)
                     {
@@ -504,12 +534,14 @@ int main()
                     }
                     else
                     {
+                        // Lógica da tela de gameover
                         if (key[ALLEGRO_KEY_ESCAPE])
                         {
                             isOnHowToPlay = 1;
                             player_init();
                             pipe_init();
                             score = 0;
+                            best_score_was_updated = 0;
                         }
                     }
                 }
@@ -530,6 +562,7 @@ int main()
                     {
                         isOnMenu = 0;
                         isOnHowToPlay = 1;
+                        get_best_score();
                     }
                 }
             }
@@ -575,7 +608,13 @@ int main()
                 }
                 else
                 {
-                    scoreboard_draw();
+                    get_best_score();
+                    if (is_best_score())
+                    {
+                        update_best_score();
+                        get_best_score();
+                    }
+                    scoreboard_draw(font);
                 }
                 score_draw(font, player.isAlive);
             }
