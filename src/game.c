@@ -12,6 +12,8 @@
 long frames;
 long score = 0;
 char score_string[3];
+int isOnMenu = 1;
+int isOnHowToPlay = 0;
 
 void must_init(bool test, const char *description)
 {
@@ -129,14 +131,23 @@ void keyboard_update(ALLEGRO_EVENT *event)
 typedef struct SPRITES
 {
     ALLEGRO_BITMAP *player_sheet;
-
     ALLEGRO_BITMAP *player;
 
     ALLEGRO_BITMAP *background;
 
     ALLEGRO_BITMAP *pipe_sheet;
-
     ALLEGRO_BITMAP *pipe[2];
+
+    ALLEGRO_BITMAP *game_over;
+    ALLEGRO_BITMAP *scoreboard;
+    ALLEGRO_BITMAP *medal_sheet;
+    ALLEGRO_BITMAP *medal[4];
+
+    ALLEGRO_BITMAP *get_ready;
+    ALLEGRO_BITMAP *how_to_play;
+
+    ALLEGRO_BITMAP *game_title;
+    ALLEGRO_BITMAP *play_button;
 
 } SPRITES;
 
@@ -151,28 +162,58 @@ ALLEGRO_BITMAP *sprite_grab(ALLEGRO_BITMAP *sheet, int x, int y, int w, int h)
 
 void sprites_init()
 {
+    // Inicializa sprite do fundo
     sprites.background = al_load_bitmap("./assets/background.png");
     must_init(sprites.background, "background");
 
+    // Inicializa sprites dos canos
     sprites.pipe_sheet = al_load_bitmap("./assets/pipe.png");
     must_init(sprites.pipe_sheet, "pipe");
 
     sprites.pipe[0] = sprite_grab(sprites.pipe_sheet, 0, 0, PIPE_W, PIPE_H);
     sprites.pipe[1] = sprite_grab(sprites.pipe_sheet, PIPE_W + 2, 0, PIPE_W, PIPE_H);
 
+    // Inicializa sprite do scoreboard
+    sprites.scoreboard = al_load_bitmap("./assets/scoreboard.png");
+    must_init(sprites.scoreboard, "scoreboard");
+
+    // Inicializa sprite das medalhas
+    sprites.medal_sheet = al_load_bitmap("./assets/medal.png");
+    must_init(sprites.medal_sheet, "medal");
+
+    sprites.medal[0] = sprite_grab(sprites.medal_sheet, 0, 72, 22, 22);
+    sprites.medal[1] = sprite_grab(sprites.medal_sheet, 0, 48, 22, 22);
+    sprites.medal[2] = sprite_grab(sprites.medal_sheet, 0, 24, 22, 22);
+    sprites.medal[3] = sprite_grab(sprites.medal_sheet, 0, 0, 22, 22);
+
+    // Inicializa os sprites do menu
+    sprites.game_title = al_load_bitmap("./assets/flappybird.png");
+    must_init(sprites.game_title, "title");
+
+    sprites.play_button = al_load_bitmap("./assets/playbutton.png");
+    must_init(sprites.play_button, "play");
+
+    // Inicializa os sprites do tutorial
+    sprites.how_to_play = al_load_bitmap("./assets/howtoplay.png");
+    must_init(sprites.how_to_play, "tutorial");
+
+    sprites.get_ready = al_load_bitmap("./assets/getready.png");
+    must_init(sprites.get_ready, "ready");
+
+    // Inicializa sprite do gameover
+    sprites.game_over = al_load_bitmap("./assets/gameover.png");
+    must_init(sprites.game_over, "gameover");
+
+    // Inicializa sprites do jogador
     sprites.player_sheet = al_load_bitmap("./assets/player.png");
     must_init(sprites.player_sheet, "playersheet");
 
     sprites.player = sprite_grab(sprites.player_sheet, 0, 0, PLAYER_W, PLAYER_H);
-    //sprites.player[1] = sprite_grab(sprites.player_sheet, 28, 0, PLAYER_W, PLAYER_H);
-    //sprites.player[2] = sprite_grab(sprites.player_sheet, 56, 0, PLAYER_W, PLAYER_H);
 }
 
 void sprites_denit()
 {
     al_destroy_bitmap(sprites.player);
-    //al_destroy_bitmap(sprites.player[1]);
-    //al_destroy_bitmap(sprites.player[2]);
 
     al_destroy_bitmap(sprites.pipe_sheet);
     al_destroy_bitmap(sprites.pipe[0]);
@@ -180,16 +221,74 @@ void sprites_denit()
 
     al_destroy_bitmap(sprites.player_sheet);
     al_destroy_bitmap(sprites.background);
+    al_destroy_bitmap(sprites.scoreboard);
+
+    al_destroy_bitmap(sprites.medal_sheet);
+    al_destroy_bitmap(sprites.medal[0]);
+    al_destroy_bitmap(sprites.medal[1]);
+    al_destroy_bitmap(sprites.medal[2]);
+    al_destroy_bitmap(sprites.medal[3]);
+
+    al_destroy_bitmap(sprites.game_over);
+
+    al_destroy_bitmap(sprites.game_title);
+    al_destroy_bitmap(sprites.play_button);
+
+    al_destroy_bitmap(sprites.how_to_play);
+    al_destroy_bitmap(sprites.get_ready);
 }
 
 // --- audio ---
 
 // --- hud ---
 
-void score_draw(ALLEGRO_FONT *font)
+void score_draw(ALLEGRO_FONT *font, int isAlive)
 {
     sprintf(score_string, "%i", score);
-    al_draw_text(font, al_map_rgb(255, 255, 255), (BUFFER_W / 2) - 2, 10, 0, score_string);
+    if (isAlive)
+    {
+        al_draw_text(font, al_map_rgb(255, 255, 255), (BUFFER_W / 2) - 2, 10, 0, score_string);
+    }
+    else
+    {
+        al_draw_text(font, al_map_rgb(251, 120, 88), BUFFER_W - 40, BUFFER_H - 153, 0, score_string);
+    }
+}
+
+void scoreboard_draw()
+{
+    al_draw_bitmap(sprites.game_over, BUFFER_W / 9 + 8, BUFFER_W / 3 - 5, 0);
+    al_draw_bitmap(sprites.scoreboard, BUFFER_W / 9, BUFFER_H / 3, 0);
+    if (score < 25)
+    {
+        al_draw_bitmap(sprites.medal[0], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
+    }
+    if (score >= 25 && score < 50)
+    {
+        al_draw_bitmap(sprites.medal[1], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
+    }
+    if (score >= 50 && score < 100)
+    {
+        al_draw_bitmap(sprites.medal[2], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
+    }
+    if (score > 100)
+    {
+        al_draw_bitmap(sprites.medal[3], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
+    }
+}
+
+void menu_draw(ALLEGRO_FONT *font)
+{
+    al_draw_bitmap(sprites.game_title, BUFFER_W / 5, BUFFER_H / 10, 0);
+    al_draw_bitmap(sprites.play_button, BUFFER_W / 3.2, BUFFER_H / 3, 0);
+    al_draw_text(font, al_map_rgb(255, 255, 255), BUFFER_W / 12, BUFFER_H - 15, 0, "(c) Campos 2021");
+    al_draw_bitmap(sprites.player, BUFFER_W - 30, 50, 0);
+}
+
+void tutorial_draw()
+{
+    al_draw_bitmap(sprites.get_ready, BUFFER_W / 9 + 8, BUFFER_W / 3 - 5, 0);
+    al_draw_bitmap(sprites.how_to_play, BUFFER_W / 3.5, BUFFER_H / 2, 0);
 }
 
 // --- player ---
@@ -286,7 +385,7 @@ void pipe_init()
         // Uma coordenada y aleatória é gerado para o cano
         pipes[i].y = (rand() % 100) - 100;
 
-        pipes[0].isScored = 0;
+        pipes[i].isScored = 0;
     }
 }
 
@@ -322,12 +421,14 @@ void pipe_draw()
         al_draw_bitmap(sprites.pipe[1], pipes[i].x, pipes[i].y + PIPE_H + PIPE_SPACE_BETWEEN, 0);
     }
 }
+
 //--- main ---
 
 int main()
 {
     must_init(al_init(), "allegro");
     must_init(al_install_keyboard(), "keyboard");
+    must_init(al_install_mouse(), "mouse");
 
     ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
     must_init(timer, "timer");
@@ -352,6 +453,7 @@ int main()
     al_register_event_source(queue, al_get_keyboard_event_source());
     al_register_event_source(queue, al_get_display_event_source(disp));
     al_register_event_source(queue, al_get_timer_event_source(timer));
+    al_register_event_source(queue, al_get_mouse_event_source());
 
     keyboard_init();
     player_init();
@@ -369,27 +471,68 @@ int main()
         switch (event.type)
         {
         case ALLEGRO_EVENT_TIMER:
-            pipe_update();
-            if (player.isAlive)
+            if (isOnMenu)
             {
-
-                player.gravity = player.gravity + 0.3;
-                if (player.y < 461 && !key[ALLEGRO_KEY_SPACE])
+                if (key[ALLEGRO_KEY_A])
                 {
-                    player.y = player.y + player.gravity;
+                    isOnMenu = 0;
+                    isOnHowToPlay = 1;
                 }
-                if (key[ALLEGRO_KEY_SPACE])
-                    player.gravity = 0;
-                player.y = player.y - 2.5;
             }
-
-            if (key[ALLEGRO_KEY_ESCAPE])
-                done = true;
+            else
+            {
+                if (isOnHowToPlay)
+                {
+                    if (key[ALLEGRO_KEY_SPACE])
+                    {
+                        isOnHowToPlay = 0;
+                    }
+                }
+                else
+                {
+                    pipe_update();
+                    if (player.isAlive)
+                    {
+                        player.gravity = player.gravity + 0.3;
+                        if (player.y < 461 && !key[ALLEGRO_KEY_SPACE])
+                        {
+                            player.y = player.y + player.gravity;
+                        }
+                        if (key[ALLEGRO_KEY_SPACE])
+                            player.gravity = 0;
+                        player.y = player.y - 2.5;
+                    }
+                    else
+                    {
+                        if (key[ALLEGRO_KEY_ESCAPE])
+                        {
+                            isOnHowToPlay = 1;
+                            player_init();
+                            pipe_init();
+                            score = 0;
+                        }
+                    }
+                }
+            }
 
             for (int i = 0; i < ALLEGRO_KEY_MAX; i++)
                 key[i] &= KEY_SEEN;
 
             redraw = true;
+            break;
+
+        case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
+            if (isOnMenu)
+            {
+                if (event.mouse.x >= DISP_W / 3.2 && event.mouse.x <= (DISP_W / 3.2) + 52 * 3)
+                {
+                    if (event.mouse.y >= DISP_H / 3 && event.mouse.y <= (DISP_H / 3) + 29 * 3)
+                    {
+                        isOnMenu = 0;
+                        isOnHowToPlay = 1;
+                    }
+                }
+            }
             break;
 
         case ALLEGRO_EVENT_KEY_DOWN:
@@ -413,12 +556,29 @@ int main()
             al_clear_to_color(al_map_rgb(0, 0, 0));
 
             al_draw_bitmap(sprites.background, 0, 0, 0);
-            if (player.isAlive)
+
+            if (isOnMenu)
             {
-                player_draw();
+                menu_draw(font);
             }
-            pipe_draw();
-            score_draw(font);
+            else
+            {
+                if (isOnHowToPlay)
+                {
+                    tutorial_draw();
+                }
+
+                pipe_draw();
+                if (player.isAlive)
+                {
+                    player_draw();
+                }
+                else
+                {
+                    scoreboard_draw();
+                }
+                score_draw(font, player.isAlive);
+            }
             disp_post_draw();
             redraw = false;
         }
