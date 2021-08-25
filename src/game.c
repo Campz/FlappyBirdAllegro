@@ -159,6 +159,9 @@ typedef struct SPRITES
     ALLEGRO_BITMAP *medal_sheet;
     ALLEGRO_BITMAP *medal[4];
     ALLEGRO_BITMAP *new_best;
+    ALLEGRO_BITMAP *buttons;
+    ALLEGRO_BITMAP *bt_ok;
+    ALLEGRO_BITMAP *bt_menu;
 
     ALLEGRO_BITMAP *get_ready;
     ALLEGRO_BITMAP *how_to_play;
@@ -196,6 +199,12 @@ void sprites_init()
 
     sprites.new_best = al_load_bitmap("./assets/new.png");
     must_init(sprites.new_best, "new best score");
+
+    sprites.buttons = al_load_bitmap("./assets/buttons.png");
+    must_init(sprites.buttons, "buttons");
+
+    sprites.bt_menu = sprite_grab(sprites.buttons, 0, 0, 40, 14);
+    sprites.bt_ok = sprite_grab(sprites.buttons, 0, 16, 40, 14);
 
     // Inicializa sprite das medalhas
     sprites.medal_sheet = al_load_bitmap("./assets/medal.png");
@@ -251,6 +260,9 @@ void sprites_denit()
     al_destroy_bitmap(sprites.medal[3]);
 
     al_destroy_bitmap(sprites.game_over);
+    al_destroy_bitmap(sprites.buttons);
+    al_destroy_bitmap(sprites.bt_menu);
+    al_destroy_bitmap(sprites.bt_ok);
 
     al_destroy_bitmap(sprites.game_title);
     al_destroy_bitmap(sprites.play_button);
@@ -282,6 +294,8 @@ void scoreboard_draw(ALLEGRO_FONT *font)
     al_draw_bitmap(sprites.scoreboard, BUFFER_W / 9, BUFFER_H / 3, 0);
     sprintf(best_score_string, "%i", best_score);
     al_draw_text(font, al_map_rgb(251, 120, 88), BUFFER_W - 40, BUFFER_H - 133, 0, best_score_string);
+    al_draw_bitmap(sprites.bt_ok, 27, 150, 0);
+    al_draw_bitmap(sprites.bt_menu, 77, 150, 0);
     if (best_score_was_updated)
     {
         al_draw_bitmap(sprites.new_best, 82, BUFFER_H - 142, 0);
@@ -308,7 +322,7 @@ void menu_draw(ALLEGRO_FONT *font)
 {
     al_draw_bitmap(sprites.game_title, BUFFER_W / 5, BUFFER_H / 10, 0);
     al_draw_bitmap(sprites.play_button, BUFFER_W / 3.2, BUFFER_H / 3, 0);
-    al_draw_text(font, al_map_rgb(255, 255, 255), BUFFER_W / 12, BUFFER_H - 15, 0, "(c) Campos 2021");
+    // al_draw_text(font, al_map_rgb(255, 255, 255), BUFFER_W / 12, BUFFER_H - 15, 0, "(c) Campos 2021");
     al_draw_bitmap(sprites.player, BUFFER_W - 30, 50, 0);
 }
 
@@ -562,7 +576,31 @@ int main()
                     {
                         isOnMenu = 0;
                         isOnHowToPlay = 1;
-                        get_best_score();
+                    }
+                }
+            }
+            else
+            {
+                if (!player.isAlive)
+                {
+                    if (event.mouse.y >= 150 * DISP_SCALE && event.mouse.y <= 164 * DISP_SCALE)
+                    {
+                        if (event.mouse.x >= 27 * DISP_SCALE && event.mouse.x <= 67 * DISP_SCALE)
+                        {
+                            isOnHowToPlay = 1;
+                            player_init();
+                            pipe_init();
+                            score = 0;
+                            best_score_was_updated = 0;
+                        }
+                        if (event.mouse.x >= 77 * DISP_SCALE && event.mouse.x <= 117 * DISP_SCALE)
+                        {
+                            isOnMenu = 1;
+                            player_init();
+                            pipe_init();
+                            score = 0;
+                            best_score_was_updated = 0;
+                        }
                     }
                 }
             }
