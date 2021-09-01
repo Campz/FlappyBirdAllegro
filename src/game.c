@@ -33,6 +33,7 @@ void must_init(bool test, const char *description)
 
 void get_best_score()
 {
+    // Busca recorde do jogador salvo em um arquivo de texto ou cria um caso ele não exista ainda
     best_score_file = fopen("bestScore.txt", "r");
     if (best_score_file != NULL)
     {
@@ -49,6 +50,7 @@ void get_best_score()
 
 int is_best_score()
 {
+    // Verifica se o score atual é maior que o recorde
     if (score > best_score)
     {
         return 1;
@@ -58,6 +60,7 @@ int is_best_score()
 
 void update_best_score()
 {
+    // Atualiza o arquivo de texto com o novo recorde
     best_score_file = fopen("bestScore.txt", "w");
     fputs(score_string, best_score_file);
     fclose(best_score_file);
@@ -116,24 +119,6 @@ unsigned char key[ALLEGRO_KEY_MAX];
 void keyboard_init()
 {
     memset(key, 0, sizeof(key));
-}
-
-void keyboard_update(ALLEGRO_EVENT *event)
-{
-    switch (event->type)
-    {
-    case ALLEGRO_EVENT_TIMER:
-        for (int i = 0; i < ALLEGRO_KEY_MAX; i++)
-            key[i] &= KEY_SEEN;
-        break;
-
-    case ALLEGRO_EVENT_KEY_DOWN:
-        key[event->keyboard.keycode] = KEY_SEEN | KEY_RELEASED;
-        break;
-    case ALLEGRO_EVENT_KEY_UP:
-        key[event->keyboard.keycode] &= KEY_RELEASED;
-        break;
-    }
 }
 
 // --- sprites ---
@@ -350,6 +335,8 @@ void scoreboard_draw(ALLEGRO_FONT *font)
     {
         al_draw_bitmap(sprites.new_best, 82, BUFFER_H - 142, 0);
     }
+
+    // Desenha a medalha de ouro, prata ou bronze de acordo com o score do jogador
     if (score < 10)
     {
         al_draw_bitmap(sprites.medal[0], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
@@ -372,7 +359,6 @@ void menu_draw(ALLEGRO_FONT *font)
 {
     al_draw_bitmap(sprites.game_title, BUFFER_W / 5, BUFFER_H / 10, 0);
     al_draw_bitmap(sprites.play_button, BUFFER_W / 3.2, BUFFER_H / 3, 0);
-    // al_draw_text(font, al_map_rgb(255, 255, 255), BUFFER_W / 12, BUFFER_H - 15, 0, "(c) Campos 2021");
     al_draw_bitmap(sprites.player, BUFFER_W - 30, 50, 0);
 }
 
@@ -399,20 +385,6 @@ void player_init()
     player.y = 100;
     player.gravity = 0;
     player.isAlive = 1;
-}
-
-void player_update()
-{
-    player.gravity = player.gravity + 0.4;
-    if (player.y < 461 && !key[ALLEGRO_KEY_SPACE])
-    {
-        player.y = player.y + player.gravity;
-    }
-    if (key[ALLEGRO_KEY_SPACE])
-    {
-        player.gravity = 0;
-        player.y = player.y - 5;
-    }
 }
 
 void player_draw()
