@@ -279,6 +279,50 @@ void sprites_denit()
 
 // --- audio ---
 
+ALLEGRO_SAMPLE *background_sound;
+ALLEGRO_SAMPLE *jump_sound;
+ALLEGRO_SAMPLE *score_sound;
+ALLEGRO_SAMPLE *death_sound;
+ALLEGRO_SAMPLE *transition_sound;
+
+void audio_play(ALLEGRO_SAMPLE *audio, ALLEGRO_PLAYMODE loop)
+{
+    al_play_sample(audio, 0.75, 0, 1, loop, NULL);
+}
+
+void audio_init()
+{
+    al_install_audio();
+    al_init_acodec_addon();
+    al_reserve_samples(128);
+
+    background_sound = al_load_sample("./sounds/background.wav");
+    must_init(background_sound, "background sound");
+
+    jump_sound = al_load_sample("./sounds/jump.wav");
+    must_init(jump_sound, "jump sound");
+
+    score_sound = al_load_sample("./sounds/score.wav");
+    must_init(score_sound, "score sound");
+
+    death_sound = al_load_sample("./sounds/death.wav");
+    must_init(death_sound, "death sound");
+
+    transition_sound = al_load_sample("./sounds/transition.wav");
+    must_init(transition_sound, "transition sound");
+
+    audio_play(background_sound, ALLEGRO_PLAYMODE_LOOP);
+}
+
+void audio_denit()
+{
+    al_destroy_sample(background_sound);
+    al_destroy_sample(jump_sound);
+    al_destroy_sample(score_sound);
+    al_destroy_sample(death_sound);
+    al_destroy_sample(transition_sound);
+}
+
 // --- hud ---
 
 void score_draw(ALLEGRO_FONT *font, int isAlive)
@@ -454,6 +498,7 @@ void pipe_update()
         {
             score++;
             pipes[i].isScored = 1;
+            audio_play(score_sound, ALLEGRO_PLAYMODE_ONCE);
         }
     }
 }
@@ -509,6 +554,7 @@ int main()
     keyboard_init();
     player_init();
     pipe_init();
+    audio_init();
 
     bool done = false;
     bool redraw = true;
@@ -553,7 +599,9 @@ int main()
                             player.y = player.y + player.gravity;
                         }
                         if (key[ALLEGRO_KEY_SPACE])
+                        {
                             player.gravity = 0;
+                        }
                         player.y = player.y - 2.4;
                     }
                     else
@@ -677,6 +725,7 @@ int main()
     al_destroy_font(font);
     al_destroy_timer(timer);
     al_destroy_event_queue(queue);
+    audio_denit();
 
     return 0;
 }
