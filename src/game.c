@@ -150,6 +150,7 @@ typedef struct SPRITES
     ALLEGRO_BITMAP *player;
 
     ALLEGRO_BITMAP *background;
+    ALLEGRO_BITMAP *floor;
 
     ALLEGRO_BITMAP *pipe_sheet;
     ALLEGRO_BITMAP *pipe[2];
@@ -185,6 +186,9 @@ void sprites_init()
     // Inicializa sprite do fundo
     sprites.background = al_load_bitmap("./assets/background.png");
     must_init(sprites.background, "background");
+
+    sprites.floor = al_load_bitmap("./assets/floor.png");
+    must_init(sprites.floor, "floor");
 
     // Inicializa sprites dos canos
     sprites.pipe_sheet = al_load_bitmap("./assets/pipe.png");
@@ -244,12 +248,14 @@ void sprites_denit()
 {
     al_destroy_bitmap(sprites.player);
 
+    al_destroy_bitmap(sprites.background);
+    al_destroy_bitmap(sprites.floor);
+
     al_destroy_bitmap(sprites.pipe_sheet);
     al_destroy_bitmap(sprites.pipe[0]);
     al_destroy_bitmap(sprites.pipe[1]);
 
     al_destroy_bitmap(sprites.player_sheet);
-    al_destroy_bitmap(sprites.background);
     al_destroy_bitmap(sprites.scoreboard);
     al_destroy_bitmap(sprites.new_best);
 
@@ -300,19 +306,19 @@ void scoreboard_draw(ALLEGRO_FONT *font)
     {
         al_draw_bitmap(sprites.new_best, 82, BUFFER_H - 142, 0);
     }
-    if (score < 25)
+    if (score < 10)
     {
         al_draw_bitmap(sprites.medal[0], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
     }
-    if (score >= 25 && score < 50)
+    if (score >= 10 && score < 20)
     {
         al_draw_bitmap(sprites.medal[1], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
     }
-    if (score >= 50 && score < 100)
+    if (score >= 20 && score < 30)
     {
         al_draw_bitmap(sprites.medal[2], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
     }
-    if (score > 100)
+    if (score >= 30)
     {
         al_draw_bitmap(sprites.medal[3], (BUFFER_W / 9) + 13, (BUFFER_H / 3) + 21, 0);
     }
@@ -345,7 +351,7 @@ PLAYER player;
 
 void player_init()
 {
-    player.x = 10;
+    player.x = 20;
     player.y = 100;
     player.gravity = 0;
     player.isAlive = 1;
@@ -372,7 +378,7 @@ void player_draw()
 
 // --- obtacles ---
 
-#define NPIPES_MAX 999
+#define NPIPES_MAX 99999
 #define PIPE_SPACE_BETWEEN 45
 
 typedef struct PIPE
@@ -456,10 +462,14 @@ void pipe_draw()
 {
     for (int i = 0; i < NPIPES_MAX; i++)
     {
-        al_draw_bitmap(sprites.pipe[0], pipes[i].x, pipes[i].y, 0);
+        // Desenha apenas se o cano estiver no campo de visão da tela
+        if (pipes[i].x + PIPE_W > 0 && pipes[i].x < BUFFER_W)
+        {
+            al_draw_bitmap(sprites.pipe[0], pipes[i].x, pipes[i].y, 0);
 
-        // O cano de baixo é desenhado pegando a coordenada y do de cima somado com a altura do cano + um espaçamento definido
-        al_draw_bitmap(sprites.pipe[1], pipes[i].x, pipes[i].y + PIPE_H + PIPE_SPACE_BETWEEN, 0);
+            // O cano de baixo é desenhado pegando a coordenada y do de cima somado com a altura do cano + um espaçamento definido
+            al_draw_bitmap(sprites.pipe[1], pipes[i].x, pipes[i].y + PIPE_H + PIPE_SPACE_BETWEEN, 0);
+        }
     }
 }
 
@@ -544,7 +554,7 @@ int main()
                         }
                         if (key[ALLEGRO_KEY_SPACE])
                             player.gravity = 0;
-                        player.y = player.y - 2.5;
+                        player.y = player.y - 2.4;
                     }
                     else
                     {
@@ -631,6 +641,7 @@ int main()
             if (isOnMenu)
             {
                 menu_draw(font);
+                al_draw_bitmap(sprites.floor, 0, BUFFER_H - 56, 0);
             }
             else
             {
