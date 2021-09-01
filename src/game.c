@@ -184,6 +184,49 @@ void sprites_denit()
 
 // --- audio ---
 
+    ALLEGRO_SAMPLE *background_sound;
+    ALLEGRO_SAMPLE *jump_sound;
+    ALLEGRO_SAMPLE *fp2;
+    ALLEGRO_SAMPLE *fp3;
+    ALLEGRO_SAMPLE *fp4;
+    ALLEGRO_SAMPLE *fp5;
+
+void audio_init()
+{
+    al_install_audio();
+    al_init_acodec_addon();
+    al_reserve_samples(128);
+
+    background_sound = al_load_sample("./sounds/fp0.wav");
+    must_init(background_sound, "background_song0");
+    
+    jump_sound = al_load_sample("./sounds/jump_sound.wav");
+    must_init(jump_sound, "background_song1");
+
+    fp2 = al_load_sample("./sounds/fp2.wav");
+    must_init(fp2, "background_song2");
+
+    fp3 = al_load_sample("./sounds/fp3.wav");
+    must_init(fp3, "background_song3");
+
+    fp4 = al_load_sample("./sounds/fp4.wav");
+    must_init(fp4, "background_song4");
+
+    fp5 = al_load_sample("./sounds/fp5.wav");
+    must_init(fp5, "background_song5");
+
+    al_play_sample(background_sound,0.75,0,1, ALLEGRO_PLAYMODE_LOOP,NULL);
+}
+
+void audio_denit(){
+    al_destroy_sample(background_sound);
+    al_destroy_sample(jump_sound);
+    al_destroy_sample(fp2);
+    al_destroy_sample(fp3);
+    al_destroy_sample(fp4);
+    al_destroy_sample(fp5);
+}
+
 // --- hud ---
 
 void score_draw(ALLEGRO_FONT *font)
@@ -222,7 +265,9 @@ void player_update()
     {
         player.gravity = 0;
         player.y = player.y - 5;
+        
     }
+    
 }
 
 void player_draw()
@@ -356,6 +401,7 @@ int main()
     keyboard_init();
     player_init();
     pipe_init();
+    audio_init();
 
     bool done = false;
     bool redraw = true;
@@ -380,6 +426,7 @@ int main()
                 }
                 if (key[ALLEGRO_KEY_SPACE])
                     player.gravity = 0;
+                    al_play_sample(jump_sound,0.75,0,1, ALLEGRO_PLAYMODE_ONCE,NULL);
                 player.y = player.y - 2.5;
             }
 
@@ -429,6 +476,7 @@ int main()
     al_destroy_font(font);
     al_destroy_timer(timer);
     al_destroy_event_queue(queue);
+    audio_denit();
 
     return 0;
 }
